@@ -38,9 +38,14 @@ void UMinesweeperEditorSubsystem::SendMessageToLLM(const FString& InputMessage)
 	RequestBody->SetStringField(TEXT("model"), TEXT("gpt-4o"));
 	
 	TArray<TSharedPtr<FJsonValue>> Messages;
+	TSharedPtr<FJsonObject> SystemMessage = MakeShareable(new FJsonObject());
+	SystemMessage->SetStringField(TEXT("role"), TEXT("system"));
+	SystemMessage->SetStringField(TEXT("content"), Primer);
+	Messages.Add(MakeShareable(new FJsonValueObject(SystemMessage)));
+	
 	TSharedPtr<FJsonObject> Message = MakeShareable(new FJsonObject);
 	Message->SetStringField(TEXT("role"), TEXT("user"));
-	FString NewMessage = Primer + InputMessage;
+	FString NewMessage = InputMessage;
 	Message->SetStringField(TEXT("content"), NewMessage);
 	Messages.Add(MakeShareable(new FJsonValueObject(Message)));
 	
