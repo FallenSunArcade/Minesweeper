@@ -1,0 +1,14 @@
+Intermediate/*
+Plugins/MinesweeperGame/Intermediate/*
+Saved/*
+DerivedDataCache/*
+Binaries/*
+Plugins/MinesweeperGame/Binaries/*
+.vs/
+*.sln
+.idea/*
+Platforms/*
+.vsconfig
+Build/
+.vscode/*
+
