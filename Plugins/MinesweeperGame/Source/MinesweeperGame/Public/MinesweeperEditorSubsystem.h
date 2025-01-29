@@ -6,7 +6,7 @@
 #include "Http.h"
 #include "MinesweeperEditorSubsystem.generated.h"
 
-DECLARE_DELEGATE_ThreeParams(FOnGenerateBoard, int32, int32, int32);
+DECLARE_DELEGATE_OneParam(FOnGenerateBoard, const TArray<TArray<FString>>& Board);
 
 /**
  * 
@@ -21,7 +21,7 @@ public:
 
 	void OnLLMResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
-	FOnGenerateBoard OnGenerateBoard;
+	FOnGenerateBoard OnBoardGenerated;
 	
 protected:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;

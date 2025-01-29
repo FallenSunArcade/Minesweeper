@@ -8,6 +8,13 @@
 
 void SMinesweeperBoardWidget::Construct(const FArguments& InArgs)
 {
+	CurrentBoard =
+		{
+		{"1", "X", "1"},
+		{"2", "2", "1"},
+		{"X", "1", "0"}
+		};
+	
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -37,71 +44,34 @@ void SMinesweeperBoardWidget::Construct(const FArguments& InArgs)
 
 	if(UMinesweeperEditorSubsystem* EditorSubsystem = GEditor->GetEditorSubsystem<UMinesweeperEditorSubsystem>())
 	{
-		EditorSubsystem->OnGenerateBoard.BindRaw(this, &SMinesweeperBoardWidget::GenerateBoard);
+		EditorSubsystem->OnBoardGenerated.BindRaw(this, &SMinesweeperBoardWidget::GenerateBoard);
 	}
 }
 
-void SMinesweeperBoardWidget::GenerateBoard(int32 NewRows, int32 NewColumns, int32 NewMines)
+void SMinesweeperBoardWidget::GenerateBoard(const TArray<TArray<FString>>& Board)
 {
-	NewMines = FMath::Clamp(NewMines, 0, NewRows * NewColumns);
-
-	BoardRows = NewRows;
-	BoardCols = NewColumns;
-	BoardMines = NewMines;
-
+	CurrentBoard = Board;
+	int32 NewRows = Board.Num();
+	int32 NewColumns = NewRows > 0 ? Board[0].Num() : 0;
+	
 	GridPanel->ClearChildren();
 	GridPanel->SetEnabled(true);
 	
 	MineLocations.Empty();
 	CellButtons.Empty();
+	CellTexts.Empty();
 
 	StartNewGameButton->SetVisibility(EVisibility::Visible);
 	
-	AdjacentBombGrid.SetNum(NewRows);
-	for (int32 Row = 0; Row < NewRows; ++Row)
-	{
-		AdjacentBombGrid[Row].SetNum(NewColumns);
-		for (int32 Col = 0; Col < NewColumns; ++Col)
-		{
-			AdjacentBombGrid[Row][Col] = 0; 
-		}
-	}
-
-	TArray<FIntPoint> AvailableCells;
 	for (int32 Row = 0; Row < NewRows; ++Row)
 	{
 		for (int32 Column = 0; Column < NewColumns; ++Column)
 		{
-			AvailableCells.Add(FIntPoint(Row, Column));
-		}
-	}
-	
-	for (int32 i = 0; i < NewMines; ++i)
-	{
-		int32 RandomIndex = FMath::RandRange(0, AvailableCells.Num() - 1);
-		FIntPoint BombLocation = AvailableCells[RandomIndex];
-		MineLocations.Add(BombLocation);
-		AvailableCells.RemoveAt(RandomIndex);
+			if (Board[Row][Column] == "X")
+			{
+				MineLocations.Add(FIntPoint(Row, Column));
+			}
 
-		for (int32 Row = -1; Row <= 1; ++Row)
-        {
-            for (int32 Col = -1; Col <= 1; ++Col)
-            {
-                int32 NeighborRow = BombLocation.X + Row;
-            	int32 NeighborColumn = BombLocation.Y + Col;
-
-                if (NeighborRow >= 0 && NeighborRow < NewRows && NeighborColumn >= 0 && NeighborColumn < NewColumns && !(Row == 0 && Col == 0))
-                {
-                    AdjacentBombGrid[NeighborRow][NeighborColumn]++;
-                }
-            }
-        }
-	}
-	
-	for (int32 Row = 0; Row < NewRows; ++Row)
-	{
-		for (int32 Column = 0; Column < NewColumns; ++Column)
-		{
 			TSharedPtr<SButton> CellButton;
 			TSharedPtr<STextBlock> CellText;
 
@@ -143,9 +113,8 @@ FReply SMinesweeperBoardWidget::OnCellClicked(int32 Row, int32 Column)
 			}
 			else
 			{
-				int32 BombNeighbors = AdjacentBombGrid[Row][Column];
 				CellButtons[ClickedCell]->SetBorderBackgroundColor(FLinearColor::Green);
-				CellTexts[ClickedCell]->SetText(FText::FromString(FString::FromInt(BombNeighbors)));
+				CellTexts[ClickedCell]->SetText(FText::FromString(CurrentBoard[Row][Column]));
 			}
 		}
 	}
@@ -155,7 +124,7 @@ FReply SMinesweeperBoardWidget::OnCellClicked(int32 Row, int32 Column)
 
 FReply SMinesweeperBoardWidget::OnStartNewGame()
 {
-	GenerateBoard(BoardRows, BoardCols, BoardMines);
+	GenerateBoard(CurrentBoard);
 	return FReply::Handled();
 }
 

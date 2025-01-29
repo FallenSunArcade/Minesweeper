@@ -17,7 +17,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 protected:
-	void GenerateBoard(int32 NewRows, int32 NewColumns, int32 NewMines);
+	void GenerateBoard(const TArray<TArray<FString>>& Board);
 
 	FReply OnCellClicked(int32 Row, int32 Column);
 
@@ -43,4 +43,6 @@ private:
 	int32 BoardCols = 4;
 
 	int32 BoardMines = 2;
+
+	TArray<TArray<FString>> CurrentBoard;
 };

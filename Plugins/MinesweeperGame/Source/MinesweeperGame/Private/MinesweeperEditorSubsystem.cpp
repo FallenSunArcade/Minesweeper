@@ -12,12 +12,14 @@ const FString APIKeyChunk1 =
 const FString APIKeyChunk2 =
 		TEXT("alDPt89VV0Ru1QZ2fT3BlbkFJhfZH8GY7-zJRrvKdWwzzm49oCGPXKlfXZSs9_RB53ozZlBf-waFkE7OkhWdA7nAmrtBmZACsoA");
 
-const FString Primer =
-	TEXT("The user will specify the number of rows, columns, and mines. If any of these parameters are missing, send an error message formatted as JSON with key-value pairs. "
-		 "If all parameters are provided, respond to the following user message with a JSON object containing the keys 'Rows', 'Cols', and 'NumMines'. "
-		 "The values should be the specified number of rows, columns, and mines. If any of the parameters are missing, the JSON response should look like this: "
-		 "{\"error\": \"Missing parameters\"}. Otherwise, respond with a JSON object like this: "
-		 "{\"Rows\": <value>, \"Cols\": <value>, \"NumMines\": <value>}");
+const FString Primer = 
+	TEXT("The user will specify the number of rows, columns, and mines. If any of these parameters are missing, respond with a JSON object containing an error message: "
+		 "{\"error\": \"Missing parameters\"}. "
+		 "If all parameters are provided, generate a Minesweeper-style grid of the exact specified size with exactly the specified number of mines placed as ('X'). "
+		 "Each non-mine cell should contain a number representing how many mines are adjacent to that cell, including diagonally. "
+		 "Respond only with the JSON object, formatted like this example: "
+		 "{\"grid\": [[\"1\", \"X\", \"1\"], [\"2\", \"2\", \"1\"], [\"X\", \"1\", \"0\"]]}."
+		 "Place the specified Mines ('X') first on the grid then calculate adjacent values");
 
 void UMinesweeperEditorSubsystem::SendMessageToLLM(const FString& InputMessage)
 {
@@ -78,16 +80,37 @@ void UMinesweeperEditorSubsystem::OnLLMResponseReceived(FHttpRequestPtr Request,
         
 		if (FJsonSerializer::Deserialize(NestedReader, NestedJsonObject))
 		{
-			if(!NestedJsonObject->HasField(TEXT("error")))
+			if (NestedJsonObject->HasField(TEXT("error")))
 			{
-				const int32 Rows = NestedJsonObject->GetIntegerField(TEXT("Rows"));
-				const int32 Cols = NestedJsonObject->GetIntegerField(TEXT("Cols"));
-				const int32 NumMines = NestedJsonObject->GetIntegerField(TEXT("NumMines"));
+				UE_LOG(LogTemp, Warning, TEXT("Error in response: %s"), *NestedJsonObject->GetStringField(TEXT("error")));
+				return;
+			}
+
+			TArray<TArray<FString>> Grid;
+			const TArray<TSharedPtr<FJsonValue>> GridArray = NestedJsonObject->GetArrayField(TEXT("grid"));
+
+			for (const TSharedPtr<FJsonValue>& RowValue : GridArray)
+			{
+				TArray<FString> Row;
+				const TArray<TSharedPtr<FJsonValue>> RowArray = RowValue->AsArray();
 				
-				if(OnGenerateBoard.ExecuteIfBound(Rows, Cols, NumMines))
+				for (const TSharedPtr<FJsonValue>& CellValue : RowArray)
 				{
-					UE_LOG(LogTemp, Log, TEXT("Rows: %d, Cols: %d, NumMines: %d"), Rows, Cols, NumMines);
+					Row.Add(CellValue->AsString());
 				}
+
+				Grid.Add(Row);
+			}
+
+			for (int32 i = 0; i < Grid.Num(); ++i)
+			{
+				FString RowString = FString::Join(Grid[i], TEXT(" "));
+				UE_LOG(LogTemp, Log, TEXT("%s"), *RowString);
+			}
+			
+			if (OnBoardGenerated.IsBound())
+			{
+				OnBoardGenerated.Execute(Grid);
 			}
 		}
 		else
