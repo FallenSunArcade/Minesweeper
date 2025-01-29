@@ -1,9 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "MinesweeperEditorSubsystem.h"
 #include "HttpModule.h"
+#include "ImageUtils.h"
 #include "Interfaces/IHttpRequest.h"
+#include "Styling/SlateStyleRegistry.h"
 
-// This is just so it can be stored on github to test
+
 const FString APIKeyChunk1 =
 		TEXT("sk-proj-5DCsATJjZJIEJ7LtwYf9sRsUr7keBUxWPxv0BAkq3xXp56FScBbp_i1hl");
 

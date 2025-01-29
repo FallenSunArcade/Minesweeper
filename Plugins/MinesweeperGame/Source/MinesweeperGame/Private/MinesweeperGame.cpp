@@ -2,12 +2,15 @@
 
 #include "MinesweeperGame.h"
 
+#include "ImageUtils.h"
 #include "MinesweeperBoardWidget.h"
 #include "MinesweeperEditorSubsystem.h"
 #include "MinesweeperGameStyle.h"
 #include "MinesweeperGameCommands.h"
+#include "MinesweeperGameWidget.h"
 #include "Misc/MessageDialog.h"
 #include "ToolMenus.h"
+#include "Styling/SlateStyleRegistry.h"
 
 static const FName MinesweeperGameTabName("MinesweeperGame");
 
@@ -43,46 +46,15 @@ void FMinesweeperGameModule::ShutdownModule()
 
 void FMinesweeperGameModule::PluginButtonClicked()
 {
-    TSharedRef<SWindow> MinesweeperWindow = SNew(SWindow)
-        .Title(FText::FromString("Minesweeper"))
-        .ClientSize(FVector2D(800, 400))
-        .SupportsMaximize(false)
-        .SupportsMinimize(false);
+	TSharedRef<SWindow> MinesweeperWindow = SNew(SWindow)
+		.Title(FText::FromString("Minesweeper"))
+		.SizingRule(ESizingRule::Autosized)
+		.SupportsMaximize(false)
+		.SupportsMinimize(false);
 	
-    MinesweeperWindow->SetContent(
-        SNew(SBorder)
-        .Padding(10)
-        [
-            SNew(SVerticalBox)
-            + SVerticalBox::Slot()
-	        .HAlign(HAlign_Center)
-	        .VAlign(VAlign_Center)
-            .Padding(5)
-            [
-                SAssignNew(MinesweeperBoard, SMinesweeperBoardWidget)
-            ]
-            + SVerticalBox::Slot()
-            .HAlign(HAlign_Center)
-            .VAlign(VAlign_Bottom)
-            .Padding(5)
-            [
-                SNew(SEditableTextBox)
-                .HintText(FText::FromString("Type something here..."))
-                .OnTextCommitted_Lambda([](const FText& NewText, ETextCommit::Type CommitType) {
-                    if (CommitType == ETextCommit::OnEnter)
-                    {
-                    	if(UMinesweeperEditorSubsystem* EditorSubsystem = GEditor->GetEditorSubsystem<UMinesweeperEditorSubsystem>())
-                    	{
-                    		EditorSubsystem->SendMessageToLLM(NewText.ToString());
-                    	}
-                        UE_LOG(LogTemp, Log, TEXT("User pressed Enter: %s"), *NewText.ToString());
-                    }
-                })
-            ]
-        ]
-    );
-
-    FSlateApplication::Get().AddWindow(MinesweeperWindow);
+	MinesweeperWindow->SetContent(SNew(SMinesweeperGameWidget));
+	
+	FSlateApplication::Get().AddWindow(MinesweeperWindow);
 }
 
 void FMinesweeperGameModule::RegisterMenus()
@@ -102,7 +74,8 @@ void FMinesweeperGameModule::RegisterMenus()
 		{
 			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("PluginTools");
 			{
-				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FMinesweeperGameCommands::Get().PluginAction));
+				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(
+					FMinesweeperGameCommands::Get().PluginAction));
 				Entry.SetCommandList(PluginCommands);
 			}
 		}
