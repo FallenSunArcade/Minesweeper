@@ -23,6 +23,8 @@ protected:
 
 	FReply OnStartNewGame();
 
+	void ShowBombs();
+
 private:
 	TSharedPtr<SGridPanel> GridPanel;
 

@@ -48,7 +48,7 @@ void FMinesweeperGameModule::PluginButtonClicked()
 {
 	TSharedRef<SWindow> MinesweeperWindow = SNew(SWindow)
 		.Title(FText::FromString("Minesweeper"))
-		.SizingRule(ESizingRule::Autosized)
+		.ClientSize({500.f, 500.f})
 		.SupportsMaximize(false)
 		.SupportsMinimize(false);
 	
