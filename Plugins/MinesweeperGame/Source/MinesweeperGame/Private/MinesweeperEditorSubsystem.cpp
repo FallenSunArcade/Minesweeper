@@ -13,12 +13,13 @@ const FString APIKeyChunk2 =
 		TEXT("alDPt89VV0Ru1QZ2fT3BlbkFJhfZH8GY7-zJRrvKdWwzzm49oCGPXKlfXZSs9_RB53ozZlBf-waFkE7OkhWdA7nAmrtBmZACsoA");
 
 const FString Primer = 
-	TEXT("The user will specify the number of rows, columns, and mines. If any of these parameters are missing, respond with a JSON object containing an error message: "
+	TEXT("The user will specify the number of rows, columns, and mines. If any of these parameters can't be deduced, respond with a JSON object containing an error message: "
 		 "{\"error\": \"Missing parameters\"}. "
 		 "If all parameters are provided, generate a Minesweeper-style grid of the exact specified size with exactly the specified number of mines placed as ('X'). "
 		 "Each non-mine cell should contain a number representing how many mines are adjacent to that cell, including diagonally. "
 		 "Respond only with the JSON object, formatted like this example: "
 		 "{\"grid\": [[\"1\", \"X\", \"1\"], [\"2\", \"2\", \"1\"], [\"X\", \"1\", \"0\"]]}."
+		 "Make sure the response content doesn't have markdown"
 		 "Place the specified Mines ('X') first on the grid then calculate adjacent values");
 
 void UMinesweeperEditorSubsystem::SendMessageToLLM(const FString& InputMessage)
@@ -34,7 +35,7 @@ void UMinesweeperEditorSubsystem::SendMessageToLLM(const FString& InputMessage)
 	HttpRequest->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *APIKey));
 	
 	TSharedPtr<FJsonObject> RequestBody = MakeShareable(new FJsonObject);
-	RequestBody->SetStringField(TEXT("model"), TEXT("gpt-3.5-turbo"));
+	RequestBody->SetStringField(TEXT("model"), TEXT("gpt-4o"));
 	
 	TArray<TSharedPtr<FJsonValue>> Messages;
 	TSharedPtr<FJsonObject> Message = MakeShareable(new FJsonObject);
