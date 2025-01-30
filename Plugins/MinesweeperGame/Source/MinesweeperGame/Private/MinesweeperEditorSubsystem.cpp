@@ -12,18 +12,20 @@ const FString APIKeyChunk1 =
 const FString APIKeyChunk2 =
 		TEXT("alDPt89VV0Ru1QZ2fT3BlbkFJhfZH8GY7-zJRrvKdWwzzm49oCGPXKlfXZSs9_RB53ozZlBf-waFkE7OkhWdA7nAmrtBmZACsoA");
 
-const FString Primer = 
-	TEXT("The user will specify the number of rows, columns, and mines. If any of these parameters can't be deduced, respond with a JSON object containing an error message: "
-		 "{\"error\": \"Missing parameters\"}. "
-		 "If all parameters are provided, generate a Minesweeper-style grid of the exact specified size with exactly the specified number of mines placed as ('X'). "
-		 "Each non-mine cell should contain a number representing how many mines are adjacent to that cell, including diagonally. "
-		 "Respond only with the JSON object, formatted like this example: "
-		 "{\"grid\": [[\"1\", \"X\", \"1\"], [\"2\", \"2\", \"1\"], [\"X\", \"1\", \"0\"]]}."
-		 "Make sure the response content doesn't have markdown"
-		 "Place the specified Mines ('X') first on the grid then calculate adjacent values");
+const FString Primer = TEXT(
+	"You are a Minesweeper game generator. The user specifies the number of rows, columns, and mines. "
+	"If any of these parameters are missing, respond with a JSON object: {\"error\": \"Missing parameters\"}. "
+	"If all parameters are provided, generate a Minesweeper-style grid with EXACTLY the specified number of mines ('X'). "
+	"Do not add extra mines or remove any. The grid should be a 2D array where each cell contains either 'X' for mines or "
+	"the correct number of adjacent mines. The response should be **pure JSON**, without Markdown, without code block formatting, "
+	"and without any explanations or extra text. The JSON format should be as follows: "
+	"{\"grid\": [[\"1\", \"X\", \"1\"], [\"2\", \"2\", \"1\"], [\"X\", \"1\", \"0\"]], \"mines\": 2}. "
+	"Ensure the \"mines\" field **exactly matches** the number of mines in the generated grid."
+);
 
 void UMinesweeperEditorSubsystem::SendMessageToLLM(const FString& InputMessage)
 {
+	CurrentInputMessage = InputMessage;
 	FString APIKey = APIKeyChunk1 + APIKeyChunk2;
 	const FString OpenAIEndpoint = TEXT("https://api.openai.com/v1/chat/completions");
 	
@@ -50,6 +52,8 @@ void UMinesweeperEditorSubsystem::SendMessageToLLM(const FString& InputMessage)
 	Messages.Add(MakeShareable(new FJsonValueObject(Message)));
 	
 	RequestBody->SetArrayField(TEXT("messages"), Messages);
+
+	RequestBody->SetNumberField(TEXT("temperature"), 1);
 	
 	FString RequestBodyString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBodyString);
@@ -113,10 +117,29 @@ void UMinesweeperEditorSubsystem::OnLLMResponseReceived(FHttpRequestPtr Request,
 				FString RowString = FString::Join(Grid[i], TEXT(" "));
 				UE_LOG(LogTemp, Log, TEXT("%s"), *RowString);
 			}
-			
-			if (OnBoardGenerated.IsBound())
+
+			int32 NumMines = NestedJsonObject->GetNumberField(TEXT("mines"));
+
+			if(HasExpectedMines(Grid, NumMines))
 			{
-				OnBoardGenerated.Execute(Grid);
+				if (OnBoardGenerated.IsBound())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Attempts needed %d"), CurrentTryCount);
+					CurrentTryCount = 0;
+					OnBoardGenerated.Execute(Grid);
+				}
+			}
+			else
+			{
+				if(CurrentTryCount < 20)
+				{
+					++CurrentTryCount;
+					SendMessageToLLM(CurrentInputMessage);
+				}
+				else
+				{
+					CurrentTryCount = 0;
+				}
 			}
 		}
 		else
@@ -128,6 +151,22 @@ void UMinesweeperEditorSubsystem::OnLLMResponseReceived(FHttpRequestPtr Request,
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No choices field in JSON response."));
 	}
+}
+
+bool UMinesweeperEditorSubsystem::HasExpectedMines(const TArray<TArray<FString>>& Grid, int32 ExpectedMines)
+{
+	int32 MineCount = 0;
+	for (const TArray<FString>& Row : Grid)
+	{
+		for (const FString& Cell : Row)
+		{
+			if (Cell == "X") 
+			{
+				MineCount++;
+			}
+		}
+	}
+	return MineCount == ExpectedMines; 
 }
 
 void UMinesweeperEditorSubsystem::Initialize(FSubsystemCollectionBase& Collection)

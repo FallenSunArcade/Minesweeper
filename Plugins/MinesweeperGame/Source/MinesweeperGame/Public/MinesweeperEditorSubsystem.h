@@ -24,6 +24,12 @@ public:
 	FOnGenerateBoard OnBoardGenerated;
 	
 protected:
+	bool HasExpectedMines(const TArray<TArray<FString>>& Grid, int32 ExpectedMines);
+	
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
+	FString CurrentInputMessage;
+
+	int32 CurrentTryCount = 0;
 };
 
